@@ -1,0 +1,17 @@
+name: ZAP Baseline Scan
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+jobs: 
+  zap_scan:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    name: zap
+    steps:
+      - name: ZAP Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target: 'http://localhost:3000'
+  
