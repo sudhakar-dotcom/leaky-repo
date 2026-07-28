@@ -13,5 +13,5 @@ jobs:
         uses: zaproxy/action-baseline@v0.14.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          target: 'http://localhost:3000'
+          target: 'https://juice-shop.github.io/'
   

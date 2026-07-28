@@ -65,6 +65,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           docker_name: 'owasp/zap2docker-stable'
-          target: 'http://localhost:3000' # Change URL or IP of your target application
+          target: 'https://juice-shop.github.io/' # Change URL or IP of your target application
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
