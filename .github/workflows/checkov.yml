@@ -1,17 +1,17 @@
-name: Checkov IaC Scan
+name: '2 · Checkov'
+# Stage: IaC scan — run alone or via Pipeline
 on:
-  schedule:
-    - cron: '0 6 * * 1'
+  workflow_call:
   workflow_dispatch:
 jobs:
   checkov:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Checkov Scan
-      uses: bridgecrewio/checkov-action@v12
-      with:
-        directory: .
-        quiet: true
-        soft_fail: true
-        output_format: cli
+      - uses: actions/checkout@v6
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          quiet: true
+          soft_fail: true
+          output_format: cli

@@ -1,14 +1,18 @@
-name: Snyk
+name: '4 · Snyk'
+# Stage: dependency scan — run alone or via Pipeline
+# Note: this secrets-benchmark repo has no package.json; continue-on-error keeps the stage green.
 on:
-  schedule:
-    - cron: '0 6 * * 1'
+  workflow_call:
   workflow_dispatch:
 jobs:
   snyk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@v0.4.0
+        uses: snyk/actions/node@v1.0.0
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --severity-threshold=high

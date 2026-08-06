@@ -1,16 +1,16 @@
-name: Gitleaks Secret Scan
+name: '1 · Gitleaks'
+# Stage: secrets scan — run alone or via Pipeline
 on:
-  schedule:
-    - cron: '0 6 * * 1'
+  workflow_call:
   workflow_dispatch:
 jobs:
   gitleaks:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Gitleaks Scan
-      uses: gitleaks/gitleaks-action@v3
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,14 +1,25 @@
-name: Dastardly Action
+name: '6 · Dastardly'
+# Stage: DAST — run alone or via Pipeline
 on:
-  schedule:
-    - cron: '0 6 * * 1'
+  workflow_call:
+    inputs:
+      target_url:
+        description: 'URL of the application to scan'
+        type: string
+        required: false
+        default: 'https://ginandjuice.shop'
   workflow_dispatch:
-
+    inputs:
+      target_url:
+        description: 'URL of the application to scan'
+        type: string
+        required: false
+        default: 'https://ginandjuice.shop'
 jobs:
   dastardly:
     runs-on: ubuntu-latest
     steps:
-    - name: Run Dastardly Action Step
-      uses: PortSwigger/dastardly-github-action@main
-      with:
-        target-url: 'https://juice-shop.github.io/'
+      - name: Run Dastardly Action Step
+        uses: PortSwigger/dastardly-github-action@main
+        with:
+          target-url: ${{ inputs.target_url || 'https://ginandjuice.shop' }}
