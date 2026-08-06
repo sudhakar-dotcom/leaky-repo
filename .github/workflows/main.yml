@@ -1,0 +1,78 @@
+name: SafeCI Control Panel
+# One place to preview & run scanners: Actions → SafeCI Control Panel → Run workflow
+on:
+  workflow_dispatch:
+    inputs:
+      run_all:
+        description: '▶️ Run ALL workflows'
+        type: boolean
+        default: true
+      gitleaks:
+        description: '🔐 Gitleaks — secret scan'
+        type: boolean
+        default: false
+      checkov:
+        description: '🧱 Checkov — IaC scan'
+        type: boolean
+        default: false
+      snyk:
+        description: '📦 Snyk — dependency scan'
+        type: boolean
+        default: false
+      sonarcloud:
+        description: '☁️ SonarCloud — SAST / code quality'
+        type: boolean
+        default: false
+      zap:
+        description: '🕷️ ZAP — DAST baseline'
+        type: boolean
+        default: false
+      dastardly:
+        description: '🎯 Dastardly — DAST'
+        type: boolean
+        default: false
+      target_url:
+        description: 'DAST target URL (ZAP / Dastardly)'
+        type: string
+        default: 'https://ginandjuice.shop'
+
+jobs:
+  gitleaks:
+    name: Gitleaks
+    if: ${{ inputs.run_all || inputs.gitleaks }}
+    uses: ./.github/workflows/gitleaks.yml
+    secrets: inherit
+
+  checkov:
+    name: Checkov
+    if: ${{ inputs.run_all || inputs.checkov }}
+    uses: ./.github/workflows/checkov.yml
+    secrets: inherit
+
+  snyk:
+    name: Snyk
+    if: ${{ inputs.run_all || inputs.snyk }}
+    uses: ./.github/workflows/snyk.yml
+    secrets: inherit
+
+  sonarcloud:
+    name: SonarCloud
+    if: ${{ inputs.run_all || inputs.sonarcloud }}
+    uses: ./.github/workflows/sonarqube_cloud.yml
+    secrets: inherit
+
+  zap:
+    name: ZAP Baseline
+    if: ${{ inputs.run_all || inputs.zap }}
+    uses: ./.github/workflows/zap_baseline.yml
+    with:
+      target_url: ${{ inputs.target_url }}
+    secrets: inherit
+
+  dastardly:
+    name: Dastardly
+    if: ${{ inputs.run_all || inputs.dastardly }}
+    uses: ./.github/workflows/dastardly.yml
+    with:
+      target_url: ${{ inputs.target_url }}
+    secrets: inherit
