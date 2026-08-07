@@ -119,27 +119,31 @@ jobs:
           print(json.dumps(results, indent=2))
           PY
 
-      - name: Generate SafeCI full report
+      - name: Generate SafeCI full report (MD + HTML + PDF)
         env:
           SAFECI_TARGET_URL: ${{ inputs.target_url || 'https://ginandjuice.shop' }}
         run: |
+          python3 -m pip install --quiet xhtml2pdf
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           python3 .github/scripts/generate-safeci-report.py \
             --results results.json \
             --artifacts-dir artifacts \
             --out safeci-full-report.md \
+            --html safeci-full-report.html \
+            --pdf safeci-full-report.pdf \
             --repository "${{ github.repository }}" \
             --run-url "$RUN_URL" \
             --sha "${{ github.sha }}" \
             --target-url "${SAFECI_TARGET_URL}"
-          echo "---- report preview ----"
-          head -n 80 safeci-full-report.md
+          ls -lh safeci-full-report.*
 
       - name: Upload full report artifact
         uses: actions/upload-artifact@v4
         with:
           name: safeci-full-report
           path: |
+            safeci-full-report.pdf
+            safeci-full-report.html
             safeci-full-report.md
             results.json
           if-no-files-found: error

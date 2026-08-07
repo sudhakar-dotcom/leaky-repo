@@ -1,5 +1,6 @@
 name: '1 · Gitleaks'
 # Stage: secrets scan — run alone or via Pipeline
+# On leaky-repo, findings are EXPECTED. Soft-fail so the Pipeline still produces a full report.
 on:
   workflow_call:
   workflow_dispatch:
@@ -24,8 +25,22 @@ jobs:
           docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:latest \
             detect --source . --no-git --report-format json --report-path safeci-artifacts/gitleaks-report.json \
             || true
-          printf '%s\n' "{\"stage\":\"gitleaks\",\"status\":\"${{ steps.scan.outcome }}\",\"note\":\"Secrets findings are expected on leaky-repo.\"}" \
-            > safeci-artifacts/stage-meta.json
+          FINDINGS=0
+          if [ -f safeci-artifacts/gitleaks-report.json ]; then
+            FINDINGS=$(python3 -c "import json; d=json.load(open('safeci-artifacts/gitleaks-report.json')); print(len(d) if isinstance(d,list) else len(d.get('findings',d.get('Findings',[]))))" 2>/dev/null || echo 0)
+          fi
+          python3 - <<PY
+          import json
+          open("safeci-artifacts/stage-meta.json","w",encoding="utf-8").write(json.dumps({
+            "stage": "gitleaks",
+            "scan_outcome": "${{ steps.scan.outcome }}",
+            "status": "success",
+            "findings_count": int("${FINDINGS}" or 0),
+            "note": "Soft-fail on leaky-repo: secrets findings are expected benchmark fixtures.",
+            "where_to_find": "Artifact safeci-gitleaks → gitleaks-report.json; also listed in safeci-full-report.pdf",
+          }, indent=2))
+          PY
+          echo "Gitleaks scan_outcome=${{ steps.scan.outcome }} findings=$FINDINGS (soft-fail; job continues)"
       - name: Upload SafeCI artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -33,6 +48,3 @@ jobs:
           name: safeci-gitleaks
           path: safeci-artifacts/
           if-no-files-found: warn
-      - name: Fail job if gitleaks failed
-        if: steps.scan.outcome == 'failure'
-        run: exit 1
