@@ -1,0 +1,18 @@
+{
+  "name": "leaky-repo-marketplace",
+  "owner": {
+    "name": "ankitbharti1998",
+    "email": "thillaistat@gmail.com"
+  },
+  "metadata": {
+    "description": "Marketplace bundling the SafeCI DevSecOps pipeline skill for the leaky-repo secrets benchmark.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "safeci-pipeline",
+      "source": "./plugins/safeci-pipeline",
+      "description": "Run and manage the SafeCI DevSecOps pipeline (Gitleaks, Checkov, SonarCloud, Snyk, ZAP, Dastardly) locally or via GitHub Actions."
+    }
+  ]
+}

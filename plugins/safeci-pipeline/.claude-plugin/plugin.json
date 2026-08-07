@@ -1,0 +1,20 @@
+{
+  "name": "safeci-pipeline",
+  "description": "Run and manage the SafeCI DevSecOps pipeline (Gitleaks, Checkov, SonarCloud, Snyk, ZAP, Dastardly) for the leaky-repo secrets benchmark — locally or via GitHub Actions.",
+  "version": "1.0.0",
+  "author": {
+    "name": "ankitbharti1998"
+  },
+  "keywords": [
+    "devsecops",
+    "security",
+    "sast",
+    "dast",
+    "secrets-scanning",
+    "gitleaks",
+    "checkov",
+    "sonarcloud",
+    "snyk",
+    "zap"
+  ]
+}
