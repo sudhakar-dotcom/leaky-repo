@@ -18,9 +18,10 @@ jobs:
           quiet: true
           soft_fail: true
           output_format: cli,json
-          # comma-separated targets matching output_format order:
-          # "console" prints the CLI table, the dir receives results_json.json
-          output_file_path: console,safeci-artifacts
+          # A comma makes checkov treat each value as an exact destination,
+          # positionally matched to output_format: cli -> console, json -> this file.
+          # (Without a comma it would instead treat the value as a directory.)
+          output_file_path: console,safeci-artifacts/results_json.json
       - name: Stage meta
         if: always()
         env:
