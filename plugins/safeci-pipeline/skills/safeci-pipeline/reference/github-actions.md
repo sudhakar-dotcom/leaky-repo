@@ -13,12 +13,12 @@ gh workflow run pipeline.yml
 # Run a single stage (turn off run_all, enable the one you want)
 gh workflow run pipeline.yml -f run_all=false -f gitleaks=true
 
-# DAST target override (ZAP / Dastardly)
+# DAST target override (ZAP)
 gh workflow run pipeline.yml -f run_all=false -f zap=true -f target_url=https://ginandjuice.shop
 ```
 
 Dispatch input flags: `run_all` (default `true`), `gitleaks`, `checkov`,
-`sonarcloud`, `snyk`, `zap`, `dastardly`, and `target_url`.
+`sonarcloud`, `snyk`, `zap`, and `target_url`.
 
 ## Watch and inspect runs
 

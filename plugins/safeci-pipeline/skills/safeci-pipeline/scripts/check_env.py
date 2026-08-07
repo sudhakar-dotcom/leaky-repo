@@ -59,7 +59,6 @@ def main() -> int:
         missing = [r for r in s.requires if is_missing(r)]
         state = "ready" if not missing else f"blocked ({', '.join(missing)})"
         print(f"  {s.id:<11} {state}")
-    print("  dastardly   CI-only (trigger via: python safeci.py ci dastardly)")
 
     print("\nBenchmark harness (.leaky-meta):")
     bench_missing = [b for b in ("bash", "pip") if shutil.which(b) is None]

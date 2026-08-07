@@ -1,11 +1,11 @@
 ---
 name: safeci-pipeline
-description: Run and manage the SafeCI DevSecOps pipeline for the leaky-repo secrets benchmark. Use when asked to execute the security pipeline, run a specific scan stage (Gitleaks, Checkov, SonarCloud, Snyk, ZAP, Dastardly), trigger the GitHub Actions workflow, scan the repo locally, configure required CI secrets, or interpret scan results.
+description: Run and manage the SafeCI DevSecOps pipeline for the leaky-repo secrets benchmark. Use when asked to execute the security pipeline, run a specific scan stage (Gitleaks, Checkov, SonarCloud, Snyk, ZAP), trigger the GitHub Actions workflow, scan the repo locally, configure required CI secrets, or interpret scan results.
 ---
 
 # SafeCI Pipeline
 
-A 6-stage DevSecOps pipeline that runs security scanners over this repository.
+A 5-stage DevSecOps pipeline that runs security scanners over this repository.
 `leaky-repo` is a **benchmark of intentionally planted, fake secrets**, so
 scanners are *expected* to fire. The goal is to run the scanners and report
 coverage — **not** to "fix" the secrets (they are test fixtures).
@@ -13,7 +13,7 @@ coverage — **not** to "fix" the secrets (they are test fixtures).
 The repo has **two functional layers**:
 - **CI pipeline** (`.github/workflows/`) — *runs* scanners. Stages: **1** Gitleaks
   (secrets) → **2** Checkov (IaC) → **3** SonarCloud (SAST) → **4** Snyk (deps) →
-  **5** ZAP (DAST) → **6** Dastardly (DAST). Defined in `pipeline.yml`; each is
+  **5** ZAP (DAST). Defined in `pipeline.yml`; each is
   also a standalone reusable workflow.
 - **Benchmark harness** (`.leaky-meta/`) — *scores* scanners (gitleaks,
   detect-secrets, truffleHog) against the ground truth in `secrets.csv` and

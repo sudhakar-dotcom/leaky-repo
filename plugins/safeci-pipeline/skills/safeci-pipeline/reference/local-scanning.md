@@ -44,9 +44,3 @@ Scans a **live URL**, not the repo. Change the target as needed.
 ```bash
 docker run --rm ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://ginandjuice.shop
 ```
-
-## Stage 6 — Dastardly (DAST)
-
-Dastardly runs as a GitHub Action (`PortSwigger/dastardly-github-action`) and has
-no first-class local CLI; trigger it via the pipeline instead. See
-`github-actions.md`.

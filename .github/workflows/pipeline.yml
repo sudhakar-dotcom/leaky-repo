@@ -1,6 +1,6 @@
 name: Pipeline
 # Full DevSecOps pipeline — Actions → Pipeline → Run workflow
-# Toggle stages below, or open each numbered workflow (1–6) to run one stage alone.
+# Toggle stages below, or open each numbered workflow (1–5) to run one stage alone.
 on:
   push:
     branches: [main, master]
@@ -34,12 +34,8 @@ on:
         description: '5 — ZAP (DAST)'
         type: boolean
         default: false
-      dastardly:
-        description: '6 — Dastardly (DAST)'
-        type: boolean
-        default: false
       target_url:
-        description: 'DAST target URL (ZAP / Dastardly)'
+        description: 'DAST target URL (ZAP)'
         type: string
         default: 'https://ginandjuice.shop'
 
@@ -77,17 +73,7 @@ jobs:
     if: ${{ always() && !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.run_all || inputs.zap) }}
     permissions:
       contents: read
-      issues: write
     uses: ./.github/workflows/zap_baseline.yml
-    with:
-      target_url: ${{ inputs.target_url || 'https://ginandjuice.shop' }}
-    secrets: inherit
-
-  dastardly:
-    name: '6 · Dastardly'
-    needs: [zap]
-    if: ${{ always() && !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.run_all || inputs.dastardly) }}
-    uses: ./.github/workflows/dastardly.yml
     with:
       target_url: ${{ inputs.target_url || 'https://ginandjuice.shop' }}
     secrets: inherit
@@ -95,7 +81,7 @@ jobs:
   summary:
     name: 'Pipeline summary'
     runs-on: ubuntu-latest
-    needs: [gitleaks, checkov, sonarcloud, snyk, zap, dastardly]
+    needs: [gitleaks, checkov, sonarcloud, snyk, zap]
     if: always()
     steps:
       - name: Print results
@@ -108,4 +94,3 @@ jobs:
           echo "| 3 SonarCloud | ${{ needs.sonarcloud.result }} |"
           echo "| 4 Snyk | ${{ needs.snyk.result }} |"
           echo "| 5 ZAP | ${{ needs.zap.result }} |"
-          echo "| 6 Dastardly | ${{ needs.dastardly.result }} |"

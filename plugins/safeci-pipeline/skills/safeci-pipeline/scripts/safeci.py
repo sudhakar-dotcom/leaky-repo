@@ -43,9 +43,9 @@ except (AttributeError, ValueError):
 REFERENCE = Path(__file__).resolve().parent.parent / "reference" / "commands.md"
 
 # CI-only stages have no first-class local CLI in this repo.
-CI_ONLY = {"dastardly"}
+CI_ONLY: set[str] = set()
 # Valid workflow_dispatch toggles on pipeline.yml.
-CI_STAGES = {"gitleaks", "checkov", "sonarcloud", "snyk", "zap", "dastardly"}
+CI_STAGES = {"gitleaks", "checkov", "sonarcloud", "snyk", "zap"}
 
 
 class Stage:
@@ -92,7 +92,6 @@ def cmd_list(stages: "dict[str, Stage]") -> int:
     for s in stages.values():
         reqs = ", ".join(s.requires) or "none"
         print(f"  {s.id:<11} {s.type:<14} requires: {reqs}")
-    print(f"\n  {'dastardly':<11} {'DAST':<14} CI-only (no local CLI) — use: python safeci.py ci dastardly")
     return 0
 
 
@@ -209,7 +208,7 @@ def main(argv=None) -> int:
     pc = sub.add_parser("ci", help="trigger the GitHub Actions pipeline via gh")
     pc.add_argument("stage", nargs="?", default="all", help="stage id or 'all' (default: all)")
     pc.add_argument("--dry-run", action="store_true", help="print the gh command without running it")
-    pc.add_argument("--target-url", help="DAST target URL override (zap/dastardly)")
+    pc.add_argument("--target-url", help="DAST target URL override (zap)")
 
     pb = sub.add_parser("benchmark", help="score scanners vs .leaky-meta/secrets.csv ground truth")
     pb.add_argument("--dry-run", action="store_true", help="print the command without running it")

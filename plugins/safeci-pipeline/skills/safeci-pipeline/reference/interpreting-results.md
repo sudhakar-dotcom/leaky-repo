@@ -26,5 +26,5 @@ them if the user explicitly asks to change the fixture set.
 
 - `.git/` and `.leaky-meta/` are excluded from SonarCloud via
   `sonar-project.properties` (`sonar.exclusions`).
-- Stages 5–6 (ZAP, Dastardly) report on the live `target_url`, so their findings
+- Stage 5 (ZAP) reports on the live `target_url`, so its findings
   describe that web app — they are unrelated to the secrets in this repo.

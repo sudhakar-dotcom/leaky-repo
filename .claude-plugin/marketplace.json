@@ -12,7 +12,7 @@
     {
       "name": "safeci-pipeline",
       "source": "./plugins/safeci-pipeline",
-      "description": "Run and manage the SafeCI DevSecOps pipeline (Gitleaks, Checkov, SonarCloud, Snyk, ZAP, Dastardly) locally or via GitHub Actions."
+      "description": "Run and manage the SafeCI DevSecOps pipeline (Gitleaks, Checkov, SonarCloud, Snyk, ZAP) locally or via GitHub Actions."
     }
   ]
 }
