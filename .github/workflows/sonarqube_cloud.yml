@@ -10,6 +10,14 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+      - name: Require SONAR_TOKEN
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SONAR_TOKEN secret is missing. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.2.1
         env:
