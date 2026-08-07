@@ -18,16 +18,43 @@ jobs:
           quiet: true
           soft_fail: true
           output_format: cli,json
-          output_file_path: consoleresults_cli.txt,safeci-artifacts/results_json.json
+          # comma-separated targets matching output_format order:
+          # "console" prints the CLI table, the dir receives results_json.json
+          output_file_path: console,safeci-artifacts
       - name: Stage meta
         if: always()
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
         run: |
           mkdir -p safeci-artifacts
-          printf '%s\n' "{\"stage\":\"checkov\",\"status\":\"${{ steps.scan.outcome }}\",\"note\":\"soft_fail=true\"}" \
-            > safeci-artifacts/stage-meta.json
+          ls -la safeci-artifacts || true
+          python3 - <<'PY'
+          import json, os, pathlib
+          report = pathlib.Path("safeci-artifacts/results_json.json")
+          failed = passed = 0
+          if report.exists():
+              try:
+                  data = json.loads(report.read_text(encoding="utf-8", errors="replace"))
+                  blocks = data if isinstance(data, list) else [data]
+                  for b in blocks:
+                      r = (b or {}).get("results") or {}
+                      failed += len(r.get("failed_checks") or [])
+                      passed += len(r.get("passed_checks") or [])
+              except Exception as exc:
+                  print(f"could not parse results_json.json: {exc}")
+          pathlib.Path("safeci-artifacts/stage-meta.json").write_text(json.dumps({
+              "stage": "checkov",
+              "status": os.environ.get("SCAN_OUTCOME", "unknown"),
+              "findings_count": failed,
+              "passed_checks": passed,
+              "note": "soft_fail=true — failed checks are reported, they do not break the build.",
+              "where_to_find": "Artifact safeci-checkov -> results_json.json; full table in safeci-full-report.pdf",
+          }, indent=2), encoding="utf-8")
+          print(f"Checkov failed={failed} passed={passed}")
+          PY
       - name: Upload SafeCI artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: safeci-checkov
           path: safeci-artifacts/

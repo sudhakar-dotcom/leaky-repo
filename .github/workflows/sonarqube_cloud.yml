@@ -11,39 +11,56 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Require SONAR_TOKEN
+      - name: Check SONAR_TOKEN
+        id: token
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           if [ -z "$SONAR_TOKEN" ]; then
-            echo "::error::SONAR_TOKEN repository secret is missing."
-            echo "::error::Add it at https://github.com/sudhakar-dotcom/leaky-repo/settings/secrets/actions"
-            exit 1
+            echo "::warning::SONAR_TOKEN repository secret is missing — SAST stage will be skipped."
+            echo "::warning::Add it at https://github.com/sudhakar-dotcom/leaky-repo/settings/secrets/actions"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "SONAR_TOKEN is set (length=${#SONAR_TOKEN})"
+            echo "present=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "SONAR_TOKEN is set (length=${#SONAR_TOKEN})"
       - name: SonarQube Scan
         id: scan
+        if: steps.token.outputs.present == 'true'
         uses: SonarSource/sonarqube-scan-action@v8.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
       - name: Stage meta
         if: always()
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+          TOKEN_PRESENT: ${{ steps.token.outputs.present }}
         run: |
           mkdir -p safeci-artifacts
-          python3 - <<PY
-          import json
-          open("safeci-artifacts/stage-meta.json","w",encoding="utf-8").write(json.dumps({
+          python3 - <<'PY'
+          import json, os
+          token = os.environ.get("TOKEN_PRESENT") == "true"
+          outcome = os.environ.get("SCAN_OUTCOME") or "skipped"
+          open("safeci-artifacts/stage-meta.json", "w", encoding="utf-8").write(json.dumps({
             "stage": "sonarcloud",
-            "status": "${{ steps.scan.outcome }}",
+            "status": outcome if token else "skipped",
+            "note": (
+                "Findings live on SonarCloud — the scanner uploads them, it does not write a local report."
+                if token else
+                "Skipped: SONAR_TOKEN repository secret is not configured."
+            ),
             "dashboard": "https://sonarcloud.io/project/overview?id=sudhakar-dotcom_leaky-repo",
+            "issues_url": "https://sonarcloud.io/project/issues?id=sudhakar-dotcom_leaky-repo&resolved=false",
+            "hotspots_url": "https://sonarcloud.io/project/security_hotspots?id=sudhakar-dotcom_leaky-repo",
             "projectKey": "sudhakar-dotcom_leaky-repo",
             "organization": "sudhakar-dotcom",
+            "where_to_find": "SonarCloud Issues / Security Hotspots tabs (links above)",
           }, indent=2))
           PY
       - name: Upload SafeCI artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: safeci-sonarcloud
           path: safeci-artifacts/

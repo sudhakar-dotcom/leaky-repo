@@ -36,20 +36,48 @@ jobs:
           allow_issue_writing: false
       - name: Collect ZAP reports
         if: always()
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+          TARGET_URL: ${{ inputs.target_url || 'https://ginandjuice.shop' }}
         run: |
           mkdir -p safeci-artifacts
+          sudo chmod -R a+rX . 2>/dev/null || true
           for f in report_html.html report_md.md report_json.json zap.yaml; do
             [ -f "$f" ] && cp "$f" safeci-artifacts/ || true
           done
           # action may write under different names — scoop common patterns
           find . -maxdepth 2 -type f \( -iname '*zap*' -o -iname 'report_*.html' -o -iname 'report_*.md' -o -iname 'report_*.json' \) \
             ! -path './safeci-artifacts/*' -exec cp -n {} safeci-artifacts/ \; 2>/dev/null || true
-          printf '%s\n' "{\"stage\":\"zap\",\"status\":\"${{ steps.scan.outcome }}\",\"target_url\":\"${{ inputs.target_url || 'https://ginandjuice.shop' }}\"}" \
-            > safeci-artifacts/stage-meta.json
+          python3 - <<'PY'
+          import json, os, pathlib
+          alerts = 0
+          by_risk = {}
+          report = pathlib.Path("safeci-artifacts/report_json.json")
+          if report.exists():
+              try:
+                  data = json.loads(report.read_text(encoding="utf-8", errors="replace"))
+                  for site in data.get("site", []) if isinstance(data, dict) else []:
+                      for a in site.get("alerts", []):
+                          alerts += 1
+                          risk = (a.get("riskdesc") or a.get("risk") or "Unknown").split(" ")[0]
+                          by_risk[risk] = by_risk.get(risk, 0) + 1
+              except Exception as exc:
+                  print(f"could not parse report_json.json: {exc}")
+          pathlib.Path("safeci-artifacts/stage-meta.json").write_text(json.dumps({
+              "stage": "zap",
+              "status": os.environ.get("SCAN_OUTCOME", "unknown"),
+              "target_url": os.environ.get("TARGET_URL", ""),
+              "findings_count": alerts,
+              "by_risk": by_risk,
+              "note": "Baseline (passive) DAST against the live target — fail_action=false.",
+              "where_to_find": "Artifact safeci-zap -> report_html.html / report_json.json; alert table in safeci-full-report.pdf",
+          }, indent=2), encoding="utf-8")
+          print(f"ZAP alerts={alerts} by_risk={by_risk}")
+          PY
           ls -la safeci-artifacts || true
       - name: Upload SafeCI artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: safeci-zap
           path: safeci-artifacts/

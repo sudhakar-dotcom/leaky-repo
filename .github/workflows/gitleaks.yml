@@ -20,30 +20,54 @@ jobs:
       - name: JSON report (detailed)
         if: always()
         continue-on-error: true
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
         run: |
           mkdir -p safeci-artifacts
+          # working tree scan
           docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:latest \
-            detect --source . --no-git --report-format json --report-path safeci-artifacts/gitleaks-report.json \
-            || true
-          FINDINGS=0
-          if [ -f safeci-artifacts/gitleaks-report.json ]; then
-            FINDINGS=$(python3 -c "import json; d=json.load(open('safeci-artifacts/gitleaks-report.json')); print(len(d) if isinstance(d,list) else len(d.get('findings',d.get('Findings',[]))))" 2>/dev/null || echo 0)
-          fi
-          python3 - <<PY
-          import json
-          open("safeci-artifacts/stage-meta.json","w",encoding="utf-8").write(json.dumps({
-            "stage": "gitleaks",
-            "scan_outcome": "${{ steps.scan.outcome }}",
-            "status": "success",
-            "findings_count": int("${FINDINGS}" or 0),
-            "note": "Soft-fail on leaky-repo: secrets findings are expected benchmark fixtures.",
-            "where_to_find": "Artifact safeci-gitleaks → gitleaks-report.json; also listed in safeci-full-report.pdf",
-          }, indent=2))
+            detect --source . --no-git --report-format json \
+            --report-path safeci-artifacts/gitleaks-report.json || true
+          # git history scan (planted secrets may only exist in past commits)
+          docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:latest \
+            detect --source . --report-format json \
+            --report-path safeci-artifacts/gitleaks-history-report.json || true
+          sudo chmod -R a+rX safeci-artifacts 2>/dev/null || true
+          ls -la safeci-artifacts || true
+          python3 - <<'PY'
+          import json, os, pathlib
+
+          def count(path):
+              p = pathlib.Path(path)
+              if not p.exists():
+                  return 0
+              try:
+                  d = json.loads(p.read_text(encoding="utf-8", errors="replace"))
+              except Exception:
+                  return 0
+              if isinstance(d, list):
+                  return len(d)
+              return len(d.get("findings") or d.get("Findings") or [])
+
+          tree = count("safeci-artifacts/gitleaks-report.json")
+          hist = count("safeci-artifacts/gitleaks-history-report.json")
+          pathlib.Path("safeci-artifacts/stage-meta.json").write_text(json.dumps({
+              "stage": "gitleaks",
+              "scan_outcome": os.environ.get("SCAN_OUTCOME", "unknown"),
+              "status": "success",
+              "findings_count": tree,
+              "history_findings_count": hist,
+              "note": "Soft-fail on leaky-repo: secrets findings are expected benchmark fixtures.",
+              "where_to_find": (
+                  "Artifact safeci-gitleaks -> gitleaks-report.json (working tree) and "
+                  "gitleaks-history-report.json (git history); full table in safeci-full-report.pdf"
+              ),
+          }, indent=2), encoding="utf-8")
+          print(f"Gitleaks working-tree findings={tree} history findings={hist} (soft-fail; job continues)")
           PY
-          echo "Gitleaks scan_outcome=${{ steps.scan.outcome }} findings=$FINDINGS (soft-fail; job continues)"
       - name: Upload SafeCI artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: safeci-gitleaks
           path: safeci-artifacts/
