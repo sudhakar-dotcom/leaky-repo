@@ -31,8 +31,8 @@ def status(ok: bool) -> str:
 def main() -> int:
     stages = parse_reference()
 
-    # Collect the union of requirements across all stages, plus CI tooling.
-    bins = {"docker", "npx", "gh"}
+    # Collect the union of requirements across all stages, plus CI + benchmark tooling.
+    bins = {"docker", "npx", "gh", "bash", "pip"}  # bash+pip: .leaky-meta benchmark harness
     envs = {"SONAR_TOKEN", "SNYK_TOKEN"}
     for s in stages.values():
         for req in s.requires:
@@ -60,6 +60,14 @@ def main() -> int:
         state = "ready" if not missing else f"blocked ({', '.join(missing)})"
         print(f"  {s.id:<11} {state}")
     print("  dastardly   CI-only (trigger via: python safeci.py ci dastardly)")
+
+    print("\nBenchmark harness (.leaky-meta):")
+    bench_missing = [b for b in ("bash", "pip") if shutil.which(b) is None]
+    if bench_missing:
+        print(f"  blocked ({', '.join(bench_missing)}) — Linux/bash + pip required; "
+              "use WSL or a container. See reference/benchmark.md")
+    else:
+        print("  ready — python safeci.py benchmark")
     return 0
 
 
