@@ -38,8 +38,9 @@ python scripts/safeci.py benchmark     # score scanners vs secrets.csv (Linux/ba
 
 ## Reference (read the relevant file for detail)
 
-- `reference/pipeline-stages.md` — the six stages, workflow files, required secrets.
+- `reference/pipeline-stages.md` — the five stages, workflow files, required secrets.
 - `reference/github-actions.md` — trigger, watch, and inspect runs with `gh`; secrets setup.
+- `reference/reporting.md` — single full report artifact + Summary tab after Pipeline runs.
 - `reference/local-scanning.md` — human-readable local scan commands per stage.
 - `reference/commands.md` — machine-readable stage definitions consumed by the scripts.
 - `reference/interpreting-results.md` — findings are expected; ground truth in `.leaky-meta/`.
@@ -53,4 +54,6 @@ python scripts/safeci.py benchmark     # score scanners vs secrets.csv (Linux/ba
   if the user explicitly asks.
 - **SonarCloud needs `SONAR_TOKEN`** and a matching `sonar.projectKey` /
   `sonar.organization` in `sonar-project.properties`, or stage 3 fails fast.
-- **Stages 5–6 are DAST** — they scan a live `target_url`, not the repo source.
+- **Stage 5 is DAST** — it scans a live `target_url`, not the repo source.
+- **Full report** — after Pipeline, download artifact `safeci-full-report` or open the
+  **SafeCI full report** job Summary (see `reference/reporting.md`).

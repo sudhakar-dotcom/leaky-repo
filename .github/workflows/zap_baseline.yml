@@ -26,6 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: ZAP Scan
+        id: scan
         uses: zaproxy/action-baseline@v0.15.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -33,3 +34,23 @@ jobs:
           target: ${{ inputs.target_url || 'https://ginandjuice.shop' }}
           fail_action: false
           allow_issue_writing: false
+      - name: Collect ZAP reports
+        if: always()
+        run: |
+          mkdir -p safeci-artifacts
+          for f in report_html.html report_md.md report_json.json zap.yaml; do
+            [ -f "$f" ] && cp "$f" safeci-artifacts/ || true
+          done
+          # action may write under different names — scoop common patterns
+          find . -maxdepth 2 -type f \( -iname '*zap*' -o -iname 'report_*.html' -o -iname 'report_*.md' -o -iname 'report_*.json' \) \
+            ! -path './safeci-artifacts/*' -exec cp -n {} safeci-artifacts/ \; 2>/dev/null || true
+          printf '%s\n' "{\"stage\":\"zap\",\"status\":\"${{ steps.scan.outcome }}\",\"target_url\":\"${{ inputs.target_url || 'https://ginandjuice.shop' }}\"}" \
+            > safeci-artifacts/stage-meta.json
+          ls -la safeci-artifacts || true
+      - name: Upload SafeCI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safeci-zap
+          path: safeci-artifacts/
+          if-no-files-found: warn

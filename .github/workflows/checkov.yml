@@ -8,10 +8,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Prepare artifact dir
+        run: mkdir -p safeci-artifacts
       - name: Checkov Scan
+        id: scan
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
           quiet: true
           soft_fail: true
-          output_format: cli
+          output_format: cli,json
+          output_file_path: consoleresults_cli.txt,safeci-artifacts/results_json.json
+      - name: Stage meta
+        if: always()
+        run: |
+          mkdir -p safeci-artifacts
+          printf '%s\n' "{\"stage\":\"checkov\",\"status\":\"${{ steps.scan.outcome }}\",\"note\":\"soft_fail=true\"}" \
+            > safeci-artifacts/stage-meta.json
+      - name: Upload SafeCI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safeci-checkov
+          path: safeci-artifacts/
+          if-no-files-found: warn

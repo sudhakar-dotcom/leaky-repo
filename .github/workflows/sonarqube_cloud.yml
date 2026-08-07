@@ -18,12 +18,33 @@ jobs:
           if [ -z "$SONAR_TOKEN" ]; then
             echo "::error::SONAR_TOKEN repository secret is missing."
             echo "::error::Add it at https://github.com/sudhakar-dotcom/leaky-repo/settings/secrets/actions"
-            echo "::error::Do not use Environment secrets unless the job sets environment:."
             exit 1
           fi
           echo "SONAR_TOKEN is set (length=${#SONAR_TOKEN})"
       - name: SonarQube Scan
+        id: scan
         uses: SonarSource/sonarqube-scan-action@v8.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
+      - name: Stage meta
+        if: always()
+        run: |
+          mkdir -p safeci-artifacts
+          python3 - <<PY
+          import json
+          open("safeci-artifacts/stage-meta.json","w",encoding="utf-8").write(json.dumps({
+            "stage": "sonarcloud",
+            "status": "${{ steps.scan.outcome }}",
+            "dashboard": "https://sonarcloud.io/project/overview?id=sudhakar-dotcom_leaky-repo",
+            "projectKey": "sudhakar-dotcom_leaky-repo",
+            "organization": "sudhakar-dotcom",
+          }, indent=2))
+          PY
+      - name: Upload SafeCI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safeci-sonarcloud
+          path: safeci-artifacts/
+          if-no-files-found: warn

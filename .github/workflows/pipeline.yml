@@ -1,6 +1,7 @@
 name: Pipeline
 # Full DevSecOps pipeline — Actions → Pipeline → Run workflow
 # Toggle stages below, or open each numbered workflow (1–5) to run one stage alone.
+# After all stages, the report job builds one SafeCI full report (summary + artifact).
 on:
   push:
     branches: [main, master]
@@ -78,19 +79,67 @@ jobs:
       target_url: ${{ inputs.target_url || 'https://ginandjuice.shop' }}
     secrets: inherit
 
-  summary:
-    name: 'Pipeline summary'
+  report:
+    name: 'SafeCI full report'
     runs-on: ubuntu-latest
     needs: [gitleaks, checkov, sonarcloud, snyk, zap]
     if: always()
+    permissions:
+      contents: read
+      actions: read
     steps:
-      - name: Print results
+      - uses: actions/checkout@v6
+
+      - name: Download stage artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          path: artifacts
+          pattern: safeci-*
+          merge-multiple: false
+
+      - name: Write stage results JSON
+        env:
+          GITLEAKS: ${{ needs.gitleaks.result }}
+          CHECKOV: ${{ needs.checkov.result }}
+          SONARCLOUD: ${{ needs.sonarcloud.result }}
+          SNYK: ${{ needs.snyk.result }}
+          ZAP: ${{ needs.zap.result }}
         run: |
-          echo "## Pipeline Results"
-          echo "| Stage | Status |"
-          echo "|-------|--------|"
-          echo "| 1 Gitleaks | ${{ needs.gitleaks.result }} |"
-          echo "| 2 Checkov | ${{ needs.checkov.result }} |"
-          echo "| 3 SonarCloud | ${{ needs.sonarcloud.result }} |"
-          echo "| 4 Snyk | ${{ needs.snyk.result }} |"
-          echo "| 5 ZAP | ${{ needs.zap.result }} |"
+          python3 - <<'PY'
+          import json, os
+          results = {
+              "gitleaks": os.environ["GITLEAKS"],
+              "checkov": os.environ["CHECKOV"],
+              "sonarcloud": os.environ["SONARCLOUD"],
+              "snyk": os.environ["SNYK"],
+              "zap": os.environ["ZAP"],
+          }
+          open("results.json", "w", encoding="utf-8").write(json.dumps(results, indent=2))
+          print(json.dumps(results, indent=2))
+          PY
+
+      - name: Generate SafeCI full report
+        env:
+          SAFECI_TARGET_URL: ${{ inputs.target_url || 'https://ginandjuice.shop' }}
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          python3 .github/scripts/generate-safeci-report.py \
+            --results results.json \
+            --artifacts-dir artifacts \
+            --out safeci-full-report.md \
+            --repository "${{ github.repository }}" \
+            --run-url "$RUN_URL" \
+            --sha "${{ github.sha }}" \
+            --target-url "${SAFECI_TARGET_URL}"
+          echo "---- report preview ----"
+          head -n 80 safeci-full-report.md
+
+      - name: Upload full report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safeci-full-report
+          path: |
+            safeci-full-report.md
+            results.json
+          if-no-files-found: error

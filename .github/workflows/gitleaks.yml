@@ -11,6 +11,28 @@ jobs:
         with:
           fetch-depth: 0
       - name: Gitleaks Scan
+        id: scan
+        continue-on-error: true
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: JSON report (detailed)
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p safeci-artifacts
+          docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:latest \
+            detect --source . --no-git --report-format json --report-path safeci-artifacts/gitleaks-report.json \
+            || true
+          printf '%s\n' "{\"stage\":\"gitleaks\",\"status\":\"${{ steps.scan.outcome }}\",\"note\":\"Secrets findings are expected on leaky-repo.\"}" \
+            > safeci-artifacts/stage-meta.json
+      - name: Upload SafeCI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safeci-gitleaks
+          path: safeci-artifacts/
+          if-no-files-found: warn
+      - name: Fail job if gitleaks failed
+        if: steps.scan.outcome == 'failure'
+        run: exit 1

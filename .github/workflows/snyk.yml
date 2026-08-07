@@ -10,10 +10,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Prepare artifact dir
+        run: mkdir -p safeci-artifacts
       - name: Run Snyk to check for vulnerabilities
+        id: scan
         uses: snyk/actions/node@v1.0.0
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --all-projects --severity-threshold=high
+          args: --all-projects --severity-threshold=high --json-file-output=safeci-artifacts/snyk-report.json
+      - name: Stage meta
+        if: always()
+        run: |
+          printf '%s\n' "{\"stage\":\"snyk\",\"status\":\"${{ steps.scan.outcome }}\",\"note\":\"No package manifests expected in leaky-repo.\",\"dashboard\":\"https://app.snyk.io\"}" \
+            > safeci-artifacts/stage-meta.json
+      - name: Upload SafeCI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safeci-snyk
+          path: safeci-artifacts/
+          if-no-files-found: warn
