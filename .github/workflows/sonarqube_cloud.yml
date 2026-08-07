@@ -2,6 +2,9 @@ name: '3 · SonarCloud'
 # Stage: SAST — run alone or via Pipeline
 on:
   workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
   workflow_dispatch:
 jobs:
   sonarqube:
@@ -15,9 +18,13 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           if [ -z "$SONAR_TOKEN" ]; then
-            echo "::error::SONAR_TOKEN secret is missing. Add it under Settings → Secrets and variables → Actions."
+            echo "::error::SONAR_TOKEN is empty for sudhakar-dotcom/leaky-repo."
+            echo "::error::Add a Repository secret (not Variable, not Environment-only) named exactly SONAR_TOKEN:"
+            echo "::error::https://github.com/sudhakar-dotcom/leaky-repo/settings/secrets/actions"
+            echo "::error::If you only set it on another repo or as an org secret for private repos, this public repo will not see it."
             exit 1
           fi
+          echo "SONAR_TOKEN is set (length=${#SONAR_TOKEN})"
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.2.1
         env:
