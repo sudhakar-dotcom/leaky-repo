@@ -62,8 +62,7 @@ jobs:
     needs: [checkov]
     if: ${{ always() && !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.run_all || inputs.sonarcloud) }}
     uses: ./.github/workflows/sonarqube_cloud.yml
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    secrets: inherit
 
   snyk:
     name: '4 · Snyk'
