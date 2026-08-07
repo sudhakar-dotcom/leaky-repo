@@ -16,7 +16,6 @@ jobs:
 
   snyk:
     runs-on: ubuntu-latest
-    environment: SONAR_TOKEN
     steps:
       - uses: actions/checkout@v6
       - name: Snyk Dependency Check
@@ -29,7 +28,6 @@ jobs:
 
   sonarqube:
     runs-on: ubuntu-latest
-    environment: SONAR_TOKEN
     steps:
       - uses: actions/checkout@v6
         with:

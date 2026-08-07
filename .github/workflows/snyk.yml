@@ -1,6 +1,6 @@
 name: '4 · Snyk'
 # Stage: dependency scan — run alone or via Pipeline
-# SNYK_TOKEN is stored in the GitHub Environment named "SONAR_TOKEN".
+# Requires repository secret SNYK_TOKEN
 # Note: this secrets-benchmark repo has no package.json; continue-on-error keeps the stage green.
 on:
   workflow_call:
@@ -8,7 +8,6 @@ on:
 jobs:
   snyk:
     runs-on: ubuntu-latest
-    environment: SONAR_TOKEN
     steps:
       - uses: actions/checkout@v6
       - name: Run Snyk to check for vulnerabilities
