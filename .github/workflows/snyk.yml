@@ -1,7 +1,11 @@
 name: '4 · Snyk'
 # Stage: dependency scan — run alone or via Pipeline
 # Requires repository secret SNYK_TOKEN
-# Note: this secrets-benchmark repo has no package.json; continue-on-error keeps the stage green.
+#
+# Dashboard note: https://app.snyk.io only shows Projects after `snyk monitor`
+# (or a GitHub import) against a real manifest (package.json, requirements.txt, …).
+# leaky-repo has none — so the website stays empty unless you add a demo manifest
+# or import another app repo.
 on:
   workflow_call:
   workflow_dispatch:
@@ -10,8 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
       - name: Prepare artifact dir
         run: mkdir -p safeci-artifacts
+
       - name: Check SNYK_TOKEN
         id: token
         env:
@@ -23,20 +29,55 @@ jobs:
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Run Snyk to check for vulnerabilities
-        id: scan
-        if: steps.token.outputs.present == 'true'
+
+      - name: Detect dependency manifests
+        id: manifests
+        run: |
+          if find . -type f \( \
+              -name package.json -o -name package-lock.json -o -name yarn.lock -o \
+              -name pnpm-lock.yaml -o -name requirements.txt -o -name Pipfile -o \
+              -name go.mod -o -name pom.xml -o -name 'build.gradle*' -o -name Gemfile \
+            \) ! -path './.git/*' ! -path './node_modules/*' | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "Dependency manifests detected."
+            find . -type f \( -name package.json -o -name requirements.txt -o -name go.mod -o -name pom.xml \) \
+              ! -path './.git/*' ! -path './node_modules/*' | head -20
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No dependency manifests in this repo. Snyk website will show 0 Projects for leaky-repo. Import an app repo in Snyk, or add a package.json if you want a demo project here."
+          fi
+
+      # `snyk test` → CI report / JSON artifact (does NOT create a website Project)
+      - name: Snyk test (CI report)
+        id: test
+        if: steps.token.outputs.present == 'true' && steps.manifests.outputs.found == 'true'
         uses: snyk/actions/node@v1.0.0
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
+          command: test
           args: --all-projects --severity-threshold=high --json-file-output=safeci-artifacts/snyk-report.json
+
+      # `snyk monitor` → creates/updates the Project on https://app.snyk.io
+      - name: Snyk monitor (register project on Snyk website)
+        id: monitor
+        if: steps.token.outputs.present == 'true' && steps.manifests.outputs.found == 'true'
+        uses: snyk/actions/node@v1.0.0
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          args: --all-projects
+
       - name: Stage meta
         if: always()
         env:
-          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+          TEST_OUTCOME: ${{ steps.test.outcome }}
+          MONITOR_OUTCOME: ${{ steps.monitor.outcome }}
           TOKEN_PRESENT: ${{ steps.token.outputs.present }}
+          MANIFESTS: ${{ steps.manifests.outputs.found }}
         run: |
           mkdir -p safeci-artifacts
           sudo chmod -R a+rX safeci-artifacts 2>/dev/null || true
@@ -44,7 +85,9 @@ jobs:
           import json, os, pathlib
           report = pathlib.Path("safeci-artifacts/snyk-report.json")
           token = os.environ.get("TOKEN_PRESENT") == "true"
-          outcome = os.environ.get("SCAN_OUTCOME") or "skipped"
+          manifests = os.environ.get("MANIFESTS") == "true"
+          test_out = os.environ.get("TEST_OUTCOME") or "skipped"
+          mon_out = os.environ.get("MONITOR_OUTCOME") or "skipped"
           count = 0
           if report.exists():
               try:
@@ -55,21 +98,36 @@ jobs:
                   print(f"could not parse snyk-report.json: {exc}")
           if not token:
               note = "Skipped: SNYK_TOKEN repository secret is not configured."
-          elif not report.exists():
-              note = ("No dependency manifests found (leaky-repo is a secrets benchmark, "
-                      "not an app), so Snyk produced no report.")
+              status = "skipped"
+          elif not manifests:
+              note = (
+                  "No dependency manifests (package.json / requirements.txt / etc.). "
+                  "Snyk cannot create a website Project for leaky-repo. "
+                  "Import a real app at https://app.snyk.io → Add project → GitHub, "
+                  "or copy SafeCI workflows into a repo that has dependencies."
+              )
+              status = "skipped"
           else:
-              note = "Dependency scan completed at --severity-threshold=high."
+              note = (
+                  f"test={test_out}, monitor={mon_out}. "
+                  "After a successful monitor, open https://app.snyk.io → Projects."
+              )
+              status = test_out
           pathlib.Path("safeci-artifacts/stage-meta.json").write_text(json.dumps({
               "stage": "snyk",
-              "status": outcome if token else "skipped",
+              "status": status,
               "findings_count": count,
               "note": note,
               "dashboard": "https://app.snyk.io",
-              "where_to_find": "Artifact safeci-snyk -> snyk-report.json; also https://app.snyk.io",
+              "where_to_find": (
+                  "Website Projects only after snyk monitor / GitHub import. "
+                  "CI JSON: artifact safeci-snyk -> snyk-report.json"
+              ),
           }, indent=2), encoding="utf-8")
+          print(note)
           print(f"Snyk vulnerabilities={count} report_present={report.exists()}")
           PY
+
       - name: Upload SafeCI artifacts
         if: always()
         uses: actions/upload-artifact@v6
