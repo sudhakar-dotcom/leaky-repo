@@ -19,7 +19,7 @@ After every Pipeline run, the **SafeCI full report** job builds:
 | **1 Gitleaks** (secrets) | Artifact `safeci-gitleaks` → `gitleaks-report.json` + PDF section 1 | — |
 | **2 Checkov** (IaC) | Artifact `safeci-checkov` → `results_json.json` + PDF section 2 | — |
 | **3 SonarCloud** (SAST) | Artifact `safeci-sonarcloud` (meta) + **full issues UI** | [SonarCloud Issues](https://sonarcloud.io/project/issues?id=sudhakar-dotcom_leaky-repo) · [Hotspots](https://sonarcloud.io/project/security_hotspots?id=sudhakar-dotcom_leaky-repo) · [Overview](https://sonarcloud.io/project/overview?id=sudhakar-dotcom_leaky-repo) |
-| **4 Snyk** (deps) | Artifact `safeci-snyk` → `snyk-report.json` + PDF section 4 | [Snyk app](https://app.snyk.io) |
+| **4 Snyk** (deps) | Artifact `safeci-snyk` → `snyk-report.json` + PDF section 4 | [Snyk Projects](https://app.snyk.io) — project `leaky-repo-snyk-demo` after `snyk monitor` (needs root `package.json`) |
 | **5 ZAP** (DAST) | Artifact `safeci-zap` → `report_html.html` / `report_md.md` + PDF section 5 | Live scan of `target_url` only |
 
 ## Gitleaks “failure” on this repo

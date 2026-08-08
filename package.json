@@ -1,0 +1,14 @@
+{
+  "name": "leaky-repo-snyk-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal dependency manifest so Snyk can create a Project for leaky-repo (SafeCI SCA demo). Intentionally includes outdated packages with known advisories — same idea as iitk_cscd_project/package.json, without the full Juice Shop app.",
+  "license": "MIT",
+  "dependencies": {
+    "express": "4.21.0",
+    "express-jwt": "0.1.3",
+    "jsonwebtoken": "0.4.0",
+    "lodash": "4.17.15",
+    "sanitize-html": "1.4.2"
+  }
+}

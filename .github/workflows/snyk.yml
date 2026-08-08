@@ -2,10 +2,8 @@ name: '4 · Snyk'
 # Stage: dependency scan — run alone or via Pipeline
 # Requires repository secret SNYK_TOKEN
 #
-# Dashboard note: https://app.snyk.io only shows Projects after `snyk monitor`
-# (or a GitHub import) against a real manifest (package.json, requirements.txt, …).
-# leaky-repo has none — so the website stays empty unless you add a demo manifest
-# or import another app repo.
+# leaky-repo now has package.json (SCA demo, modeled on iitk_cscd_project).
+# `snyk test` → CI JSON report; `snyk monitor` → Project on https://app.snyk.io
 on:
   workflow_call:
   workflow_dispatch:
@@ -34,24 +32,27 @@ jobs:
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Detect dependency manifests
-        id: manifests
+      # Root .npmrc is a planted secrets fixture (always-auth) and breaks npm/Snyk.
+      - name: Neutralize fixture .npmrc for Snyk
+        if: steps.token.outputs.present == 'true'
         run: |
-          if find . -type f \( \
-              -name package.json -o -name package-lock.json -o -name yarn.lock -o \
-              -name pnpm-lock.yaml -o -name requirements.txt -o -name Pipfile -o \
-              -name go.mod -o -name pom.xml -o -name 'build.gradle*' -o -name Gemfile \
-            \) ! -path './.git/*' ! -path './node_modules/*' | grep -q .; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
-            echo "Dependency manifests detected."
-            find . -type f \( -name package.json -o -name requirements.txt -o -name go.mod -o -name pom.xml \) \
-              ! -path './.git/*' ! -path './node_modules/*' | head -20
-          else
-            echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No dependency manifests in this repo. Snyk website will show 0 Projects for leaky-repo. Import an app repo in Snyk, or add a package.json if you want a demo project here."
+          if [ -f .npmrc ]; then
+            mv .npmrc .npmrc.gitleaks-fixture.bak
+            echo "Moved fixture .npmrc aside for Snyk (restored after scan)."
           fi
 
-      # `snyk test` → CI report / JSON artifact (does NOT create a website Project)
+      - name: Detect package.json
+        id: manifests
+        run: |
+          if [ -f package.json ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "Using package.json for Snyk (same pattern as iitk_cscd_project)."
+            python3 -c "import json; d=json.load(open('package.json')); print('name=', d.get('name')); print('deps=', list((d.get('dependencies') or {}).keys()))"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No package.json found."
+          fi
+
       - name: Snyk test (CI report)
         id: test
         if: steps.token.outputs.present == 'true' && steps.manifests.outputs.found == 'true'
@@ -61,10 +62,9 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: test
-          args: --all-projects --severity-threshold=high --json-file-output=safeci-artifacts/snyk-report.json
+          args: --file=package.json --severity-threshold=high --json-file-output=safeci-artifacts/snyk-report.json
 
-      # `snyk monitor` → creates/updates the Project on https://app.snyk.io
-      - name: Snyk monitor (register project on Snyk website)
+      - name: Snyk monitor (create/update Project on Snyk website)
         id: monitor
         if: steps.token.outputs.present == 'true' && steps.manifests.outputs.found == 'true'
         uses: snyk/actions/node@v1.0.0
@@ -73,7 +73,14 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
-          args: --all-projects
+          args: --file=package.json
+
+      - name: Restore fixture .npmrc
+        if: always()
+        run: |
+          if [ -f .npmrc.gitleaks-fixture.bak ]; then
+            mv .npmrc.gitleaks-fixture.bak .npmrc
+          fi
 
       - name: Stage meta
         if: always()
@@ -104,17 +111,12 @@ jobs:
               note = "Skipped: SNYK_TOKEN repository secret is not configured."
               status = "skipped"
           elif not manifests:
-              note = (
-                  "No dependency manifests (package.json / requirements.txt / etc.). "
-                  "Snyk cannot create a website Project for leaky-repo. "
-                  "Import a real app at https://app.snyk.io → Add project → GitHub, "
-                  "or copy SafeCI workflows into a repo that has dependencies."
-              )
+              note = "No package.json found."
               status = "skipped"
           else:
               note = (
                   f"test={test_out}, monitor={mon_out}. "
-                  "After a successful monitor, open https://app.snyk.io → Projects."
+                  "Open https://app.snyk.io → Projects for leaky-repo-snyk-demo after monitor succeeds."
               )
               status = test_out
           pathlib.Path("safeci-artifacts/stage-meta.json").write_text(json.dumps({
@@ -124,8 +126,8 @@ jobs:
               "note": note,
               "dashboard": "https://app.snyk.io",
               "where_to_find": (
-                  "Website Projects only after snyk monitor / GitHub import. "
-                  "CI JSON: artifact safeci-snyk -> snyk-report.json"
+                  "https://app.snyk.io → Projects (after monitor) · "
+                  "CI: artifact safeci-snyk -> snyk-report.json"
               ),
           }, indent=2), encoding="utf-8")
           print(note)
