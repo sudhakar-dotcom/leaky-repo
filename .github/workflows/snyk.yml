@@ -9,6 +9,10 @@ name: '4 · Snyk'
 on:
   workflow_call:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   snyk:
     runs-on: ubuntu-latest

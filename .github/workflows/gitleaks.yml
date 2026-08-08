@@ -4,6 +4,11 @@ name: '1 · Gitleaks'
 on:
   workflow_call:
   workflow_dispatch:
+
+# Least privilege (satisfies Checkov CKV2_GHA_1 — avoid default write-all)
+permissions:
+  contents: read
+
 jobs:
   gitleaks:
     runs-on: ubuntu-latest

@@ -1,0 +1,40 @@
+# Checkov config for leaky-repo (SafeCI secrets benchmark)
+#
+# - Soft-fail is still set in the workflow; this file reduces noise that conflicts
+#   with intentional SafeCI design while keeping useful GHA hardening checks.
+# - Planted secret fixtures are scored by Gitleaks / .leaky-meta — not "fixed" here.
+
+skip-check:
+  # SafeCI Pipeline needs workflow_dispatch toggles (run_all, per-stage, target_url).
+  - CKV_GHA_7
+
+skip-path:
+  # Intentionally planted fake secrets (benchmark fixtures)
+  - web/
+  - db/
+  - cloud/
+  - misc-keys/
+  - filezilla/
+  - etc/
+  - .ssh/
+  - .docker/
+  - .mozilla/
+  - .vscode/
+  - .idea/
+  - .leaky-meta/
+  - hub
+  - config
+  - .npmrc
+  - .netrc
+  - .git-credentials
+  - .ftpconfig
+  - .esmtprc
+  - .bashrc
+  - .bash_profile
+  - .remote-sync.json
+  - deployment-config.json
+  - sftp-config.json
+  - high-entropy-misc.txt
+  - proftpdpasswd
+  - ventrilo_srv.ini
+  - plugins/

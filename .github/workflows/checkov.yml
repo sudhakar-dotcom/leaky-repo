@@ -3,6 +3,10 @@ name: '2 · Checkov'
 on:
   workflow_call:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   checkov:
     runs-on: ubuntu-latest
@@ -17,6 +21,7 @@ jobs:
           directory: .
           quiet: true
           soft_fail: true
+          config_file: .checkov.yml
           output_format: cli,json
           # A comma makes checkov treat each value as an exact destination,
           # positionally matched to output_format: cli -> console, json -> this file.

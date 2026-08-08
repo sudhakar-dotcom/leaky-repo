@@ -16,11 +16,13 @@ on:
         type: string
         required: false
         default: 'https://ginandjuice.shop'
+
+permissions:
+  contents: read
+
 jobs:
   zap_scan:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     name: zap
     steps:
       - name: Checkout

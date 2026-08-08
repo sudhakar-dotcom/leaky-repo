@@ -40,6 +40,11 @@ on:
         type: string
         default: 'https://ginandjuice.shop'
 
+# Least privilege at workflow level (Checkov CKV2_GHA_1)
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   gitleaks:
     name: '1 · Gitleaks'

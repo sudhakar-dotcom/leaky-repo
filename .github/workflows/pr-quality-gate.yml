@@ -2,6 +2,11 @@ name: PR Quality Gate
 on:
   pull_request:
     types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   gitleaks:
     runs-on: ubuntu-latest
@@ -51,6 +56,7 @@ jobs:
           directory: .
           quiet: true
           soft_fail: true
+          config_file: .checkov.yml
           output_format: cli
 
   comment:
