@@ -53,6 +53,17 @@ jobs:
             echo "::notice::No package.json found."
           fi
 
+      # Snyk Open Source needs installed deps (same as iitk after npm install).
+      - name: Setup Node and install dependencies
+        if: steps.token.outputs.present == 'true' && steps.manifests.outputs.found == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: npm install
+        if: steps.token.outputs.present == 'true' && steps.manifests.outputs.found == 'true'
+        run: npm install --ignore-scripts --no-audit --no-fund
+
       - name: Snyk test (CI report)
         id: test
         if: steps.token.outputs.present == 'true' && steps.manifests.outputs.found == 'true'
