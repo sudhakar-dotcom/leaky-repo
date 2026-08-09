@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       run_all:
-        description: '▶️ Run ALL stages'
+        description: 'Run ALL stages'
         type: boolean
         default: true
       gitleaks:
